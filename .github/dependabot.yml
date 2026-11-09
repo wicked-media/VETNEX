@@ -1,0 +1,65 @@
+# Dependabot version updates. GitHub's Dependabot alerts handle security advisories
+# separately; this file only schedules routine "is there a newer release" pull requests.
+version: 2
+
+updates:
+  # Workflow actions. A stale action eventually stops being supported on the runner
+  # image, and there are only a handful of them, so they arrive as one pull request.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Australia/Sydney"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Workspace dependencies. pnpm-workspace.yaml covers apps/* and packages/*, so the
+  # root manifest and pnpm-lock.yaml are the only places Dependabot has to read.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Australia/Sydney"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+    labels:
+      - "dependencies"
+    groups:
+      # Patch and minor bumps land together, so the two-minute suite runs once instead
+      # of once per package.
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # These move as a set and need a coordinated migration, so a routine bump would
+      # only produce a red pull request. Majors are raised deliberately instead.
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "prisma"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@prisma/client"
+        update-types: ["version-update:semver-major"]
