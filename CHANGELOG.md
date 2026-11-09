@@ -59,6 +59,8 @@ All notable changes. Format loosely follows Keep a Changelog; dates are ISO.
   service and uploads the HTML report and failure traces as the `playwright-report` artifact.
 - That job caches the Playwright browser download, keyed on the Playwright version, so Chromium is
   not re-fetched on every run.
+- A `Documentation links` CI job runs `pnpm docs:check`, which fails when a tracked Markdown file
+  links to a repository path that does not exist.
 - Cross-tenant tests in `apps/api/test/tenancy.spec.ts` prove that one organisation cannot list
   another's staff, suspend its members or revoke its invitations, read or rename its clinics, or
   page through its audit trail with one of its event ids — and that no route amends or deletes an
