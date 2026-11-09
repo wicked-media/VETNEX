@@ -42,7 +42,7 @@ All notable changes. Format loosely follows Keep a Changelog; dates are ISO.
 - Typed form hook sharing Zod contracts with the API; server components for reads, client mutations.
 
 **Tests**
-- 40 unit tests (permissions, authentication, contracts, navigation) and 43 PostgreSQL-backed
+- 40 unit tests (permissions, authentication, contracts, navigation) and 49 PostgreSQL-backed
   integration tests covering auth, tenancy, RBAC, audit and the OpenAPI contract — all passing.
 - Eight Playwright browser end-to-end tests (`tests/e2e`) against a real Chromium, Next.js server,
   API and database: sign-in and sign-out, invitation creation plus acceptance through the emailed
@@ -59,6 +59,10 @@ All notable changes. Format loosely follows Keep a Changelog; dates are ISO.
   service and uploads the HTML report and failure traces as the `playwright-report` artifact.
 - That job caches the Playwright browser download, keyed on the Playwright version, so Chromium is
   not re-fetched on every run.
+- Cross-tenant tests in `apps/api/test/tenancy.spec.ts` prove that one organisation cannot list
+  another's staff, suspend its members or revoke its invitations, read or rename its clinics, or
+  page through its audit trail with one of its event ids — and that no route amends or deletes an
+  audit record at all.
 - `.github/dependabot.yml` asks Dependabot for weekly version updates: one grouped pull request for
   the workflow actions, one for patch and minor workspace dependencies, and separate pull requests
   for majors of the Next.js/React and Prisma toolchains, which need planned migrations.
