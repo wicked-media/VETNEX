@@ -1,5 +1,8 @@
 # VETNEX
 
+[![CI](https://github.com/wicked-media/VETNEX/actions/workflows/ci.yml/badge.svg)](https://github.com/wicked-media/VETNEX/actions/workflows/ci.yml)
+[![OpenAPI 3.0.3](https://img.shields.io/badge/OpenAPI-3.0.3-6BA539?logo=openapiinitiative&logoColor=white)](docs/openapi.json)
+
 The veterinary practice platform: one system for clinical records, scheduling, billing, team
 administration and — later — client-facing experiences.
 
