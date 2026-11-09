@@ -57,6 +57,8 @@ All notable changes. Format loosely follows Keep a Changelog; dates are ISO.
   `pnpm openapi:check`, and kept in step with the routes by `apps/api/test/openapi.spec.ts`.
 - A `Browser end-to-end` CI job runs the Playwright suite against its own disposable PostgreSQL
   service and uploads the HTML report and failure traces as the `playwright-report` artifact.
+- That job caches the Playwright browser download, keyed on the Playwright version, so Chromium is
+  not re-fetched on every run.
 
 **Documentation**
 - README, ARCHITECTURE, PRODUCT_REQUIREMENTS, DATABASE_SCHEMA, API_DOCUMENTATION, SECURITY,
