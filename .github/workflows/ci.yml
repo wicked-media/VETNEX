@@ -135,8 +135,27 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @vetnex/database exec prisma generate --schema prisma/schema.prisma
 
-      - name: Install Chromium
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Keyed on the Playwright version alone, so unrelated dependency changes do not
+      # discard a ~126 MiB browser download.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium with system dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
+
+      # The browser comes from the cache, but the OS libraries it needs are not cached.
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
 
       - name: Browser end-to-end tests
         run: pnpm test:e2e
