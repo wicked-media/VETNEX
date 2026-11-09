@@ -84,3 +84,71 @@ jobs:
           path: docs/openapi.json
           if-no-files-found: error
           retention-days: 30
+
+  e2e:
+    name: Browser end-to-end
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    # The suite drops, migrates and seeds its own disposable database, and starts the
+    # real API and Next.js servers itself. NODE_ENV is development so `next dev` runs
+    # as it does locally; the preparation script only ever touches the E2E database.
+    env:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://vetnex:vetnex@127.0.0.1:55432/vetnex_e2e
+      TEST_DATABASE_URL: postgresql://vetnex:vetnex@127.0.0.1:55432/vetnex_e2e
+      E2E_DATABASE_URL: postgresql://vetnex:vetnex@127.0.0.1:55432/vetnex_e2e
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: vetnex
+          POSTGRES_PASSWORD: vetnex
+          POSTGRES_DB: vetnex_e2e
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U vetnex -d vetnex_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @vetnex/database exec prisma generate --schema prisma/schema.prisma
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Browser end-to-end tests
+        run: pnpm test:e2e
+
+      # Uploaded on failure too: the report is the only way to see what the browser saw.
+      - name: Upload the Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14

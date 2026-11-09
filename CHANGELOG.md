@@ -55,6 +55,8 @@ All notable changes. Format loosely follows Keep a Changelog; dates are ISO.
 - A generated OpenAPI 3.0 document ([`docs/openapi.json`](docs/openapi.json)) with request bodies
   derived from the shared Zod contracts, served publicly at `GET /openapi.json`, validated by
   `pnpm openapi:check`, and kept in step with the routes by `apps/api/test/openapi.spec.ts`.
+- A `Browser end-to-end` CI job runs the Playwright suite against its own disposable PostgreSQL
+  service and uploads the HTML report and failure traces as the `playwright-report` artifact.
 
 **Documentation**
 - README, ARCHITECTURE, PRODUCT_REQUIREMENTS, DATABASE_SCHEMA, API_DOCUMENTATION, SECURITY,
