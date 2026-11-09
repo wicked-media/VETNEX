@@ -96,8 +96,11 @@ pointing at locally extracted packages. This is an environment limitation, not a
 4. `pnpm openapi:check` — validates `docs/openapi.json` and fails if it no longer matches the API.
 5. Uploads the validated document as the `openapi` build artifact.
 
-The browser suite is deliberately not in CI yet: it needs a Chromium download and starts its own
-server pair. Run it locally with `pnpm test:e2e`.
+A second job, `Browser end-to-end`, installs Chromium and runs `pnpm test:e2e` against its own
+`postgres:18-alpine` service and a disposable `vetnex_e2e` database. It starts the real API and
+Next.js servers on ports 4100 and 3100, exactly as on a developer machine, so the suite exercises
+the same code paths. The HTML report and failure traces are uploaded as the `playwright-report`
+artifact on every run, including when the job fails.
 
 ## Not yet automated
 

@@ -26,7 +26,8 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   timeout: 60_000,
   expect: { timeout: 10_000 },
-  reporter: [["list"]],
+  // The HTML report is retained as a CI artifact; the list reporter keeps the log readable.
+  reporter: [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
   use: {
     baseURL: webUrl,
     locale: "en-AU",
