@@ -97,6 +97,32 @@ scripts/                  Local database and setup scripts
 Turborepo is not installed: pnpm recursive scripts cover the current task graph (see
 `docs/decisions/0004-task-orchestration.md`).
 
+## Contributing
+
+`main` is protected by a repository ruleset: every change arrives through a pull request, and a pull
+request cannot merge until both required checks pass. The rules bind the repository owner too — there
+are no bypass actors — and force pushes and branch deletion are refused.
+
+| Required check | Job | What it proves |
+| --- | --- | --- |
+| `Typecheck, tests and API contract` | `verify` | Typecheck, unit and PostgreSQL-backed integration tests, and `pnpm openapi:check` |
+| `Browser end-to-end` | `e2e` | The Playwright suite against a disposable database, driving the real API and Next.js servers |
+
+Both checks are strict, so a pull request must also be up to date with `main` before it can merge.
+Every run publishes two artifacts: `openapi` (the validated contract) and `playwright-report` (the
+HTML report plus failure traces).
+
+Before opening a pull request, run the same commands CI runs:
+
+```bash
+pnpm typecheck
+pnpm test             # unit, integration and browser end-to-end
+pnpm openapi:check    # use openapi:generate if you changed a route or contract
+```
+
+New behaviour needs a test that fails without it — [TESTING.md](TESTING.md) covers the conventions,
+and [AGENTS.md](AGENTS.md) lists the non-negotiables this project is held to.
+
 ## Documentation
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — system design, tenancy, request lifecycle

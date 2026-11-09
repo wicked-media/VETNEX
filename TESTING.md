@@ -91,7 +91,7 @@ pointing at locally extracted packages. This is an environment limitation, not a
 
 1. `pnpm install --frozen-lockfile` and `prisma generate`.
 2. `pnpm typecheck`.
-3. `pnpm -r test` — unit and API integration tests against a `postgres:16-alpine` service on
+3. `pnpm -r test` — unit and API integration tests against a `postgres:18-alpine` service on
    port 55432, using the throwaway `vetnex_test` database the service creates.
 4. `pnpm openapi:check` — validates `docs/openapi.json` and fails if it no longer matches the API.
 5. Uploads the validated document as the `openapi` build artifact.
