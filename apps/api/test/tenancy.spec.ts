@@ -158,4 +158,182 @@ describe("tenant isolation", () => {
       .expect(403);
     expect(login.body.error.code).toBe("WORKSPACE_ACCESS_DENIED");
   });
+
+  describe("cross-tenant records", () => {
+    it("never lists another tenant's staff", async () => {
+      const alpha = await signupPractice(app, { organisationName: "Alpha Roster", fullName: "Alice Alpha" });
+      const beta = await signupPractice(app, { organisationName: "Beta Roster", fullName: "Bruno Beta" });
+
+      const alphaStaff = await request(app.getHttpServer())
+        .get("/staff")
+        .set("Cookie", alpha.cookie)
+        .expect(200);
+      const alphaEmails = (alphaStaff.body as Array<{ email: string; userId: string }>).map(
+        (member) => member.email,
+      );
+      expect(alphaEmails).toEqual([alpha.email]);
+      expect(alphaEmails).not.toContain(beta.email);
+      expect((alphaStaff.body as Array<{ userId: string }>).map((member) => member.userId)).not.toContain(
+        beta.userId,
+      );
+
+      const betaStaff = await request(app.getHttpServer())
+        .get("/staff")
+        .set("Cookie", beta.cookie)
+        .expect(200);
+      expect((betaStaff.body as Array<{ email: string }>).map((member) => member.email)).toEqual([
+        beta.email,
+      ]);
+    });
+
+    it("refuses to change another tenant's staff member", async () => {
+      const alpha = await signupPractice(app, { organisationName: "Alpha Memberships" });
+      const beta = await signupPractice(app, { organisationName: "Beta Memberships" });
+
+      const betaStaff = await request(app.getHttpServer())
+        .get("/staff")
+        .set("Cookie", beta.cookie)
+        .expect(200);
+      const target = (
+        betaStaff.body as Array<{ membershipId: string; status: string; title: string | null }>
+      )[0];
+      if (!target) throw new Error("Expected the beta owner to have a membership");
+
+      const response = await request(app.getHttpServer())
+        .patch(`/staff/${target.membershipId}`)
+        .set("Cookie", alpha.cookie)
+        .send({ status: "SUSPENDED", title: "Hijacked title" })
+        .expect(404);
+      expect(response.body.error.code).toBe("MEMBERSHIP_NOT_FOUND");
+
+      const betaStaffAfter = await request(app.getHttpServer())
+        .get("/staff")
+        .set("Cookie", beta.cookie)
+        .expect(200);
+      const unchanged = (
+        betaStaffAfter.body as Array<{ membershipId: string; status: string; title: string | null }>
+      ).find((member) => member.membershipId === target.membershipId);
+      expect(unchanged?.status).toBe("ACTIVE");
+      expect(unchanged?.title).toBe(target.title);
+    });
+
+    it("refuses to revoke another tenant's staff invitation", async () => {
+      const alpha = await signupPractice(app, { organisationName: "Alpha Invitations" });
+      const beta = await signupPractice(app, { organisationName: "Beta Invitations" });
+      const roleId = await getRoleId(app, beta.cookie, "nurse");
+
+      const invitation = await request(app.getHttpServer())
+        .post("/staff/invitations")
+        .set("Cookie", beta.cookie)
+        .send({ email: "nurse@beta-invitations.vet", roleId, clinicIds: [] })
+        .expect(201);
+      const invitationId = (invitation.body as { invitation: { id: string } }).invitation.id;
+
+      const attempt = await request(app.getHttpServer())
+        .post(`/staff/invitations/${invitationId}/revoke`)
+        .set("Cookie", alpha.cookie)
+        .expect(404);
+      expect(attempt.body.error.code).toBe("INVITATION_NOT_FOUND");
+
+      // Still pending for the tenant that owns it.
+      const pending = await request(app.getHttpServer())
+        .get("/staff/invitations")
+        .set("Cookie", beta.cookie)
+        .expect(200);
+      expect((pending.body as Array<{ id: string }>).map((entry) => entry.id)).toContain(invitationId);
+    });
+
+    it("does not expose another tenant's clinic and leaves it unchanged", async () => {
+      const alpha = await signupPractice(app, {
+        organisationName: "Alpha Premises",
+        clinicName: "Alpha Premises Clinic",
+      });
+      const beta = await signupPractice(app, {
+        organisationName: "Beta Premises",
+        clinicName: "Beta Premises Clinic",
+      });
+
+      const betaBefore = await request(app.getHttpServer())
+        .get("/clinics")
+        .set("Cookie", beta.cookie)
+        .expect(200);
+
+      const alphaList = await request(app.getHttpServer())
+        .get("/clinics")
+        .set("Cookie", alpha.cookie)
+        .expect(200);
+      expect((alphaList.body as Array<{ id: string }>).map((clinic) => clinic.id)).not.toContain(
+        beta.clinicId,
+      );
+
+      await request(app.getHttpServer())
+        .patch(`/clinics/${beta.clinicId}`)
+        .set("Cookie", alpha.cookie)
+        .send({ name: "Not Beta's Clinic" })
+        .expect(404);
+
+      const betaAfter = await request(app.getHttpServer())
+        .get("/clinics")
+        .set("Cookie", beta.cookie)
+        .expect(200);
+      expect(betaAfter.body).toEqual(betaBefore.body);
+    });
+
+    it("cannot page through another tenant's audit trail with its event id", async () => {
+      const alpha = await signupPractice(app, { organisationName: "Alpha Ledger" });
+      const beta = await signupPractice(app, { organisationName: "Beta Ledger" });
+
+      const betaAudit = await request(app.getHttpServer())
+        .get("/audit?limit=50")
+        .set("Cookie", beta.cookie)
+        .expect(200);
+      const betaEvents = (betaAudit.body as { events: Array<{ id: string }> }).events;
+      const betaCursor = betaEvents[0]?.id;
+      if (!betaCursor) throw new Error("Expected the beta organisation to have audit events");
+
+      const attempt = await request(app.getHttpServer())
+        .get(`/audit?limit=50&cursor=${betaCursor}`)
+        .set("Cookie", alpha.cookie)
+        .expect(404);
+      expect(attempt.body.error.code).toBe("CURSOR_NOT_FOUND");
+
+      const alphaAudit = await request(app.getHttpServer())
+        .get("/audit?limit=50")
+        .set("Cookie", alpha.cookie)
+        .expect(200);
+      const betaIds = new Set(betaEvents.map((event) => event.id));
+      for (const event of (alphaAudit.body as { events: Array<{ id: string }> }).events) {
+        expect(betaIds.has(event.id)).toBe(false);
+      }
+    });
+
+    it("offers no route that amends or deletes an audit record", async () => {
+      const owner = await signupPractice(app, { organisationName: "Audit Immutable" });
+
+      const before = await request(app.getHttpServer())
+        .get("/audit?limit=50")
+        .set("Cookie", owner.cookie)
+        .expect(200);
+      const events = (before.body as { events: Array<{ id: string }> }).events;
+      const eventId = events[0]?.id;
+      if (!eventId) throw new Error("Expected the organisation to have audit events");
+
+      // The trail is append-only: neither verb exists on the audit controller.
+      await request(app.getHttpServer())
+        .patch(`/audit/${eventId}`)
+        .set("Cookie", owner.cookie)
+        .send({ summary: "Rewritten history" })
+        .expect(404);
+      await request(app.getHttpServer())
+        .delete(`/audit/${eventId}`)
+        .set("Cookie", owner.cookie)
+        .expect(404);
+
+      const after = await request(app.getHttpServer())
+        .get("/audit?limit=50")
+        .set("Cookie", owner.cookie)
+        .expect(200);
+      expect((after.body as { events: unknown[] }).events).toEqual(events);
+    });
+  });
 });

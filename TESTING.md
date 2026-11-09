@@ -8,10 +8,10 @@
 | Password and token primitives | Vitest | `packages/authentication/src/__tests__/authentication.test.ts` (12) | Hashing, policy, constant-time comparison, hostile parameters |
 | Shared request contracts | Vitest | `packages/shared/src/__tests__/schemas.test.ts` (10) | Regional defaults, password length, address validation |
 | Web navigation/authorisation affordances | Vitest | `apps/web/src/lib/navigation.test.ts` (4) | Hidden destinations match permission grants |
-| API integration | Vitest + Supertest + PostgreSQL | `apps/api/test/*.spec.ts` (43) | Real database, real guards, real cookies |
+| API integration | Vitest + Supertest + PostgreSQL | `apps/api/test/*.spec.ts` (49) | Real database, real guards, real cookies |
 | Browser end-to-end | Playwright (Chromium) | `tests/e2e/*.spec.ts` (8) | Real browser, real Next.js server, real API, real PostgreSQL |
 
-Last verified run: 40 unit tests, 43 integration tests and 8 end-to-end tests passing, via a
+Last verified run: 40 unit tests, 49 integration tests and 8 end-to-end tests passing, via a
 single `pnpm test`, plus a clean `pnpm --filter @vetnex/web build` covering all 13 routes. The
 four contract tests in `apps/api/test/openapi.spec.ts` are part of the integration count.
 
