@@ -1,0 +1,283 @@
+// VETNEX database schema — Phase 1 foundation
+//
+// Conventions
+//  * UUID primary keys everywhere (no guessable sequential ids in URLs).
+//  * Every tenant-owned table carries `organisationId` and is indexed on it.
+//  * Clinical/financial rows will use soft deletion plus append-only amendment
+//    history; foundation rows keep `deletedAt` for recoverable removal.
+//  * `AuditEvent` is append-only: no `updatedAt`, and the API exposes no
+//    update or delete operations for it.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganisationStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum ClinicStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model Organisation {
+  id                     String             @id @default(uuid()) @db.Uuid
+  name                   String
+  slug                   String             @unique
+  timezone               String             @default("Australia/Sydney")
+  currency               String             @default("AUD")
+  locale                 String             @default("en-AU")
+  gstRate                Decimal            @default(0.10) @db.Decimal(5, 4)
+  retentionYearsClinical Int                @default(7)
+  status                 OrganisationStatus @default(ACTIVE)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  deletedAt              DateTime?
+
+  clinics        Clinic[]
+  memberships    Membership[]
+  roles          Role[]
+  invitations    Invitation[]
+  sessions       Session[]
+  auditEvents    AuditEvent[]
+  configurations Configuration[]
+
+  @@index([deletedAt])
+}
+
+model Clinic {
+  id             String       @id @default(uuid()) @db.Uuid
+  organisationId String       @db.Uuid
+  name           String
+  code           String
+  timezone       String       @default("Australia/Sydney")
+  phone          String?
+  email          String?
+  addressLine1   String?
+  suburb         String?
+  state          String?
+  postcode       String?
+  country        String       @default("AU")
+  status         ClinicStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  organisation      Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  departments       Department[]
+  membershipClinics MembershipClinic[]
+  auditEvents       AuditEvent[]
+  configurations    Configuration[]
+
+  @@unique([organisationId, code])
+  @@index([organisationId])
+  @@index([organisationId, status])
+}
+
+model Department {
+  id        String   @id @default(uuid()) @db.Uuid
+  clinicId  String   @db.Uuid
+  name      String
+  kind      String?
+  createdAt DateTime @default(now())
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, name])
+  @@index([clinicId])
+}
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  email            String     @unique
+  fullName         String
+  passwordHash     String?
+  status           UserStatus @default(ACTIVE)
+  mfaEnabled       Boolean    @default(false)
+  failedLoginCount Int        @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+
+  memberships         Membership[]
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  invitationsSent     Invitation[]         @relation("InvitationInviter")
+  auditEvents         AuditEvent[]         @relation("AuditActor")
+
+  @@index([deletedAt])
+}
+
+model Membership {
+  id             String           @id @default(uuid()) @db.Uuid
+  organisationId String           @db.Uuid
+  userId         String           @db.Uuid
+  roleId         String           @db.Uuid
+  title          String?
+  status         MembershipStatus @default(ACTIVE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         Role               @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  clinics      MembershipClinic[]
+
+  @@unique([organisationId, userId])
+  @@index([organisationId, status])
+  @@index([roleId])
+}
+
+model MembershipClinic {
+  id           String @id @default(uuid()) @db.Uuid
+  membershipId String @db.Uuid
+  clinicId     String @db.Uuid
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  clinic     Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, clinicId])
+  @@index([clinicId])
+}
+
+model Role {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  name           String
+  description    String?
+  isSystem       Boolean  @default(false)
+  systemKey      String?
+  permissions    String[] @default([])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  memberships  Membership[]
+  invitations  Invitation[]
+
+  @@unique([organisationId, name])
+  @@unique([organisationId, systemKey])
+  @@index([organisationId])
+}
+
+model Session {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  organisationId String    @db.Uuid
+  tokenHash      String    @unique
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+  lastSeenAt     DateTime  @default(now())
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  revokedReason  String?
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organisationId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  requestedIp String?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Invitation {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  email          String
+  fullName       String?
+  title          String?
+  roleId         String    @db.Uuid
+  clinicIds      String[]  @default([]) @db.Uuid
+  invitedById    String    @db.Uuid
+  tokenHash      String    @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  role         Role         @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  invitedBy    User         @relation("InvitationInviter", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, email])
+  @@index([expiresAt])
+}
+
+// Append-only. There is deliberately no updatedAt and no API path that mutates
+// or deletes audit rows.
+model AuditEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  clinicId       String?  @db.Uuid
+  actorUserId    String?  @db.Uuid
+  actorLabel     String
+  action         String
+  entityType     String
+  entityId       String?
+  summary        String
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  requestId      String?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  clinic       Clinic?      @relation(fields: [clinicId], references: [id], onDelete: SetNull)
+  actor        User?        @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, createdAt(sort: Desc)])
+  @@index([organisationId, entityType, entityId])
+  @@index([clinicId])
+}
+
+model Configuration {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  clinicId       String?  @db.Uuid
+  key            String
+  value          Json
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  clinic       Clinic?      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, clinicId, key])
+  @@index([organisationId])
+}

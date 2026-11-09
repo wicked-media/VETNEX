@@ -1,0 +1,48 @@
+{
+  "name": "vetnex",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VETNEX — veterinary practice management and clinical platform",
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter \"./apps/*\" dev",
+    "dev:web": "pnpm --filter @vetnex/web dev",
+    "dev:api": "pnpm --filter @vetnex/api dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test && pnpm test:e2e",
+    "test:e2e": "tsx tests/e2e/prepare.ts && playwright test",
+    "typecheck": "pnpm -r typecheck",
+    "openapi:generate": "tsx scripts/generate-openapi.ts",
+    "openapi:check": "tsx scripts/generate-openapi.ts --check",
+    "db:start": "node scripts/dev-db.mjs start",
+    "db:stop": "node scripts/dev-db.mjs stop",
+    "db:status": "node scripts/dev-db.mjs status",
+    "db:reset": "node scripts/dev-db.mjs reset",
+    "db:generate": "pnpm --filter @vetnex/database generate",
+    "db:migrate": "pnpm --filter @vetnex/database migrate",
+    "db:seed": "pnpm --filter @vetnex/database seed",
+    "setup": "bash scripts/setup-local.sh"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "^13.1.0",
+    "@playwright/test": "^1.65.0",
+    "embedded-postgres": "18.6.0-beta.19",
+    "pg": "^8.13.1",
+    "tsx": "^4.23.15"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild",
+      "sharp",
+      "@tailwindcss/oxide",
+      "unrs-resolver",
+      "@embedded-postgres/linux-x64"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@vetnex/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/main.ts",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node ../../scripts/prepare-test-db.mjs && vitest run"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.2.8",
+    "@nestjs/core": "11.2.8",
+    "@nestjs/platform-express": "11.2.8",
+    "@vetnex/authentication": "workspace:*",
+    "@vetnex/database": "workspace:*",
+    "@vetnex/permissions": "workspace:*",
+    "@vetnex/shared": "workspace:*",
+    "dotenv": "^16.4.7",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "3.25.76",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "11.2.8",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "@types/supertest": "^6.0.2",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

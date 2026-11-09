@@ -1,0 +1,49 @@
+# Optional alternative to `pnpm db:start` for machines that have a Docker daemon.
+#
+# The documented development workflow does NOT use this file: the build environment for this
+# repository has no Docker access, so PostgreSQL runs in user space (see
+# docs/decisions/0002-local-database.md). This compose file is provided for convenience and has
+# not been verified in this repository's CI.
+#
+# Usage:
+#   docker compose -f docker/docker-compose.yml up -d
+#   DATABASE_URL="postgresql://vetnex:vetnex@127.0.0.1:5432/vetnex" pnpm db:migrate
+#
+# Redis is included because later phases use it for background jobs and shared rate limiting.
+# Nothing in Phase 1 connects to it.
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: vetnex-postgres
+    environment:
+      POSTGRES_USER: vetnex
+      POSTGRES_PASSWORD: vetnex
+      POSTGRES_DB: vetnex
+    ports:
+      - "5432:5432"
+    volumes:
+      - vetnex-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vetnex -d vetnex"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: vetnex-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - vetnex-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  vetnex-postgres:
+  vetnex-redis:

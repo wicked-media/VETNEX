@@ -1,0 +1,27 @@
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+
+# Local environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Local PostgreSQL cluster and scratch space
+.data/
+.tmp/
+
+# Generated Prisma client
+packages/database/generated/
+
+# Test + tooling output
+*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+*.log
+logs/
+.DS_Store

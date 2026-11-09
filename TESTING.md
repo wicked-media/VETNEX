@@ -1,0 +1,116 @@
+# Testing
+
+## Current state
+
+| Layer | Tool | Files | Notes |
+| --- | --- | --- | --- |
+| Permission catalogue and role semantics | Vitest | `packages/permissions/src/__tests__/permissions.test.ts` (14) | Wildcards, planned-permission rejection, default role invariants |
+| Password and token primitives | Vitest | `packages/authentication/src/__tests__/authentication.test.ts` (12) | Hashing, policy, constant-time comparison, hostile parameters |
+| Shared request contracts | Vitest | `packages/shared/src/__tests__/schemas.test.ts` (10) | Regional defaults, password length, address validation |
+| Web navigation/authorisation affordances | Vitest | `apps/web/src/lib/navigation.test.ts` (4) | Hidden destinations match permission grants |
+| API integration | Vitest + Supertest + PostgreSQL | `apps/api/test/*.spec.ts` (43) | Real database, real guards, real cookies |
+| Browser end-to-end | Playwright (Chromium) | `tests/e2e/*.spec.ts` (8) | Real browser, real Next.js server, real API, real PostgreSQL |
+
+Last verified run: 40 unit tests, 43 integration tests and 8 end-to-end tests passing, via a
+single `pnpm test`, plus a clean `pnpm --filter @vetnex/web build` covering all 13 routes. The
+four contract tests in `apps/api/test/openapi.spec.ts` are part of the integration count.
+
+The API suite runs against a **separate database** (`TEST_DATABASE_URL`) and truncates tables before
+each file. It never touches development data.
+
+```bash
+pnpm db:start
+pnpm test                                # everything
+pnpm --filter @vetnex/api test           # integration only
+```
+
+`apps/api`'s `test` script runs `scripts/prepare-test-db.mjs` first, which applies migrations to the
+test database with `prisma migrate deploy`.
+
+## What the integration suite proves
+
+- Signup creates organisation, clinic, departments, five system roles and an owner session.
+- Session reads, sign-out revocation, session listing and revocation.
+- Wrong password, unknown email and account lockout behave correctly and indistinguishably.
+- Password reset revokes existing sessions and rejects the old password.
+- Invitations: create, preview, accept, reuse rejection, revocation, expired links.
+- The last active owner cannot be suspended.
+- Untrusted browser origins are rejected on state-changing requests.
+- Cross-tenant isolation for clinics, staff, roles, invitations, audit and dashboard.
+- Permission boundaries for veterinarian, receptionist and observer roles.
+- Planned permissions cannot be granted; custom roles grant exactly what they declare.
+- Audit entries record actor and before/after metadata, paginate newest first, and cannot be
+  modified or deleted through the API.
+- Health endpoint reports database connectivity.
+
+## Browser end-to-end tests
+
+`tests/e2e` drives a real Chromium against a real Next.js server, a real NestJS API and a real
+PostgreSQL database. Nothing is mocked, stubbed or intercepted.
+
+```bash
+pnpm exec playwright install --with-deps chromium   # once per machine (needs sudo for system libs)
+pnpm db:start
+pnpm test:e2e                                       # rebuild the E2E database, then run the suite
+pnpm test                                           # unit + integration + end-to-end
+```
+
+`pnpm test:e2e` runs `tests/e2e/prepare.ts` first. It drops and rebuilds the **dedicated**
+`E2E_DATABASE_URL` database (default `postgresql://vetnex:vetnex@127.0.0.1:55432/vetnex_e2e`),
+applies migrations, loads the synthetic Riverbend practice, and inserts 80 synthetic audit events
+so pagination is exercised against real rows. Development and test databases are never touched.
+Because it drops a schema, it refuses any host other than `localhost`/`127.0.0.1` unless
+`E2E_ALLOW_REMOTE_DATABASE=true` is set explicitly.
+
+Playwright starts its own servers on **3100** (web) and **4100** (API), so the suite can run while
+`pnpm dev` is using 3000 and 4000. `reuseExistingServer` is off: a stale server fails the run
+instead of silently testing old code.
+
+### What the suite covers
+
+| Spec | Proves |
+| --- | --- |
+| `sign-in.spec.ts` | Anonymous redirect, wrong-password handling with no field disclosure, successful sign-in against seeded data, sign-out ending the session |
+| `team-invitation.spec.ts` | Invitation created through the dialog, development-only link surfaced honestly, token accepted in a clean browser context, invitation consumed and not reusable |
+| `role-editing.spec.ts` | Custom role created, permissions edited, change survives a reload; planned permissions are disabled; the Owner role cannot be edited |
+| `audit-paging.spec.ts` | Server-rendered first page, cursor pagination 25 → 50 → 75, event detail toggle, no edit/delete controls, permission denial for a role without `audit:read` |
+
+The suite runs with `workers: 1` because it mutates shared practice state (invitations, roles,
+audit history); deterministic assertions are worth more than parallel speed at this size.
+
+### Container note
+
+On a machine without root and without the standard Chromium system libraries or fonts, Playwright
+cannot launch: it fails in `SkFontMgr_FontConfigInterface` when fontconfig has no config. Install the
+dependencies (`playwright install --with-deps`) or provide `LD_LIBRARY_PATH` and `FONTCONFIG_FILE`
+pointing at locally extracted packages. This is an environment limitation, not a project defect.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push and pull request:
+
+1. `pnpm install --frozen-lockfile` and `prisma generate`.
+2. `pnpm typecheck`.
+3. `pnpm -r test` — unit and API integration tests against a `postgres:16-alpine` service on
+   port 55432, using the throwaway `vetnex_test` database the service creates.
+4. `pnpm openapi:check` — validates `docs/openapi.json` and fails if it no longer matches the API.
+5. Uploads the validated document as the `openapi` build artifact.
+
+The browser suite is deliberately not in CI yet: it needs a Chromium download and starts its own
+server pair. Run it locally with `pnpm test:e2e`.
+
+## Not yet automated
+
+- Accessibility audits (axe) and visual regression.
+- Load/performance tests and p95 budgets.
+- Backup/restore verification.
+- Migration rehearsal against a production-sized dataset.
+
+## Conventions for new tests
+
+- One test file per domain (`auth`, `tenancy`, `rbac`, `audit`, …) in `apps/api/test`.
+- Assert the error `code`, not just the status, so contract changes are visible.
+- Every permission boundary gets a positive and negative case.
+- Every tenancy rule gets a cross-tenant attempt.
+- Never widen a test to make it pass; fix the code or correct a wrong expectation deliberately.
+- Tests use synthetic fixtures only — no real client, patient or staff data.

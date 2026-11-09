@@ -1,0 +1,15 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Dependencies allowed to run install scripts (Prisma engine download, Tailwind oxide,
+# esbuild). Everything else stays blocked, which is pnpm's secure default.
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - "prisma"
+  - "esbuild"
+  - "sharp"
+  - "@tailwindcss/oxide"
+  - "unrs-resolver"
+  - "@embedded-postgres/linux-x64"
