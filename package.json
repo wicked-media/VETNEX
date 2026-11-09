@@ -17,6 +17,7 @@
     "typecheck": "pnpm -r typecheck",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "openapi:check": "tsx scripts/generate-openapi.ts --check",
+    "docs:check": "node scripts/check-doc-links.mjs",
     "db:start": "node scripts/dev-db.mjs start",
     "db:stop": "node scripts/dev-db.mjs stop",
     "db:status": "node scripts/dev-db.mjs status",
