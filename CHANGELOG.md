@@ -59,6 +59,9 @@ All notable changes. Format loosely follows Keep a Changelog; dates are ISO.
   service and uploads the HTML report and failure traces as the `playwright-report` artifact.
 - That job caches the Playwright browser download, keyed on the Playwright version, so Chromium is
   not re-fetched on every run.
+- `.github/dependabot.yml` asks Dependabot for weekly version updates: one grouped pull request for
+  the workflow actions, one for patch and minor workspace dependencies, and separate pull requests
+  for majors of the Next.js/React and Prisma toolchains, which need planned migrations.
 
 **Documentation**
 - README, ARCHITECTURE, PRODUCT_REQUIREMENTS, DATABASE_SCHEMA, API_DOCUMENTATION, SECURITY,
@@ -67,6 +70,6 @@ All notable changes. Format loosely follows Keep a Changelog; dates are ISO.
 ### Known limitations
 - No email provider: invitation/reset tokens are returned in development only.
 - No MFA, passkeys or SSO enrolment.
-- No CI pipeline, Playwright suite, OpenAPI document or load tests yet.
+- No load or performance testing.
 - Clients, patients, scheduling, clinical, billing and inventory are not implemented and are not
   stubbed in the UI.
