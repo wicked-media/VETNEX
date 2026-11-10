@@ -21,6 +21,51 @@ env:
   NODE_ENV: test
 
 jobs:
+  # A pull request that only touches documentation cannot break the browser suite, so `e2e` is
+  # skipped for it. This has to be a conditional job rather than a workflow-level `paths-ignore`:
+  # GitHub reports a job skipped by `if` as successful, which satisfies a required check, while a
+  # filtered workflow leaves the check pending and blocks the merge. Pushes and manual runs always
+  # run the suite, so `main` itself is still verified.
+  changes:
+    name: Documentation-only changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Classify the change
+        id: classify
+        env:
+          # Empty on push and workflow_dispatch, where the browser suite always runs.
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if [ -z "$BASE_REF" ]; then
+            echo "No pull request base, so the browser suite runs."
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # HEAD is the pull request's test merge commit, so this diff is exactly what the pull
+          # request changes.
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          files=$(git diff --name-only FETCH_HEAD HEAD)
+          printf '%s\n' "$files"
+
+          # Markdown anywhere, plus the dependency-free documentation checker and its unit tests.
+          others=$(printf '%s\n' "$files" | grep -vE '(\.md$|^scripts/check-doc-links[^/]*\.mjs$)' || true)
+          if [ -n "$others" ]; then
+            echo "Non-documentation files changed, so the browser suite runs."
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Documentation only, so the browser suite is skipped."
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   verify:
     name: Typecheck, tests and API contract
     runs-on: ubuntu-24.04
@@ -87,6 +132,10 @@ jobs:
 
   e2e:
     name: Browser end-to-end
+    # Documentation-only pull requests skip this job. A skipped job reports success, so the
+    # required check is satisfied without spending twenty minutes on the browser suite.
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
 

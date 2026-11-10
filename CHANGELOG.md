@@ -78,6 +78,9 @@ All notable changes. Format loosely follows Keep a Changelog; dates are ISO.
   anchor matching cannot drift silently.
 - `pnpm test` now runs both documentation checks before the workspace suites and Playwright, so a
   broken link or anchor fails locally rather than only in the `Documentation links` CI job.
+- The `Browser end-to-end` job is skipped for pull requests that only change Markdown or the
+  documentation checker, through a `changes` job that classifies the diff. A skipped job reports
+  success, so the required check stays satisfied; pushes to `main` always run the suite.
 
 ### Known limitations
 - No email provider: invitation/reset tokens are returned in development only.

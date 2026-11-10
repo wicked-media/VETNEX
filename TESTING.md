@@ -115,6 +115,13 @@ Next.js servers on ports 4100 and 3100, exactly as on a developer machine, so th
 the same code paths. The HTML report and failure traces are uploaded as the `playwright-report`
 artifact on every run, including when the job fails.
 
+That job is skipped when a pull request changes nothing but Markdown or the documentation checker,
+since neither can affect the browser suite. A `changes` job compares the pull request against its
+base and decides; a job skipped by a condition still reports success, so the required check stays
+satisfied. Filtering the workflow itself (`paths-ignore`) would instead leave the required check
+pending and block the merge. Pushes to `main` and manual runs always execute the suite, so a merged
+commit is still verified in the browser.
+
 A third job, `Documentation links`, runs `node scripts/check-doc-links.mjs` without installing any
 dependencies. It fails when a tracked Markdown file links to a repository path that does not exist —
 the usual cause of a link that works in an editor but 404s on the host — or to a `#heading` that the

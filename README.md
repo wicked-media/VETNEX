@@ -116,7 +116,7 @@ there are no bypass actors — and force pushes and branch deletion are refused.
 | Required check | Job | What it proves |
 | --- | --- | --- |
 | `Typecheck, tests and API contract` | `verify` | Typecheck, unit and PostgreSQL-backed integration tests, and `pnpm openapi:check` |
-| `Browser end-to-end` | `e2e` | The Playwright suite against a disposable database, driving the real API and Next.js servers |
+| `Browser end-to-end` | `e2e` | The Playwright suite against a disposable database, driving the real API and Next.js servers. Skipped, and still reported as passing, when a pull request only changes Markdown or the documentation scripts |
 | `Documentation links` | `docs` | Every local link in the tracked Markdown resolves to a file, and every `#heading` to a real heading |
 
 Every check is strict, so a pull request must also be up to date with `main` before it can merge.
