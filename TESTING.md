@@ -1,5 +1,14 @@
 # Testing
 
+## Contents
+
+- [Current state](#current-state)
+- [What the integration suite proves](#what-the-integration-suite-proves)
+- [Browser end-to-end tests](#browser-end-to-end-tests)
+- [Continuous integration](#continuous-integration)
+- [Not yet automated](#not-yet-automated)
+- [Conventions for new tests](#conventions-for-new-tests)
+
 ## Current state
 
 | Layer | Tool | Files | Notes |

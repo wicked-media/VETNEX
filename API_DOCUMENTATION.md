@@ -19,6 +19,19 @@ pnpm openapi:generate   # rewrite docs/openapi.json from the API
 pnpm openapi:check      # validate, and fail if the committed document is out of date
 ```
 
+## Contents
+
+- [Error envelope](#error-envelope)
+- [Health](#health)
+- [Authentication](#authentication)
+- [Organisation](#organisation)
+- [Clinics](#clinics)
+- [Staff](#staff)
+- [Roles](#roles)
+- [Audit](#audit)
+- [Dashboard](#dashboard)
+- [Conventions](#conventions)
+
 ## Error envelope
 
 ```json

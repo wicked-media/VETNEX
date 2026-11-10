@@ -72,6 +72,7 @@ All notable changes. Format loosely follows Keep a Changelog; dates are ISO.
 **Documentation**
 - README, ARCHITECTURE, PRODUCT_REQUIREMENTS, DATABASE_SCHEMA, API_DOCUMENTATION, SECURITY,
   COMPLIANCE_ASSUMPTIONS, DEVELOPMENT, DEPLOYMENT, TESTING, ROADMAP, AGENTS and six ADRs.
+- Contents lists at the top of the longer documents, with every entry checked by `pnpm docs:check`.
 
 ### Known limitations
 - No email provider: invitation/reset tokens are returned in development only.

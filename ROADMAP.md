@@ -2,6 +2,17 @@
 
 Sequenced by risk, not by demo appeal. Each phase ends with working software and passing tests.
 
+## Contents
+
+- [Phase 0 — Discovery and architecture ✅](#phase-0-discovery-and-architecture)
+- [Phase 1 — Foundation ✅ (this increment)](#phase-1-foundation-this-increment)
+- [Phase 2 — Clients, patients and scheduling](#phase-2-clients-patients-and-scheduling)
+- [Phase 3 — Clinical workflows](#phase-3-clinical-workflows)
+- [Phase 4 — Financial and inventory](#phase-4-financial-and-inventory)
+- [Phase 5 — Pilot readiness](#phase-5-pilot-readiness)
+- [Phase 6 — Platform](#phase-6-platform)
+- [Engineering debt to schedule deliberately](#engineering-debt-to-schedule-deliberately)
+
 ## Phase 0 — Discovery and architecture ✅
 
 Product requirements, personas, domain model, architecture decisions, security and compliance

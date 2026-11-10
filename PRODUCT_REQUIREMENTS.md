@@ -1,5 +1,15 @@
 # Product requirements
 
+## Contents
+
+- [Product statement](#product-statement)
+- [Who it is for](#who-it-is-for)
+- [Phase 1 scope (this increment) — implemented](#phase-1-scope-this-increment-implemented)
+- [Acceptance criteria — Phase 1](#acceptance-criteria-phase-1)
+- [Explicitly out of scope for Phase 1](#explicitly-out-of-scope-for-phase-1)
+- [Product decisions taken (with rationale)](#product-decisions-taken-with-rationale)
+- [Open product questions](#open-product-questions)
+
 ## Product statement
 
 VETNEX is a cloud-first veterinary practice platform. It replaces the split between practice
