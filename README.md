@@ -79,7 +79,7 @@ Seeded by `pnpm db:seed` — **not real people, not real patients**. Password fo
 | `pnpm dev` | Run web and API together |
 | `pnpm build` | Build all workspaces |
 | `pnpm typecheck` | Typecheck every workspace |
-| `pnpm test` | Unit, integration and browser end-to-end tests |
+| `pnpm test` | Documentation checks, then unit, integration and browser end-to-end tests |
 | `pnpm test:e2e` | Browser end-to-end tests only (run `pnpm exec playwright install chromium` once) |
 | `pnpm openapi:generate` | Rewrite `docs/openapi.json` from the API |
 | `pnpm openapi:check` | Validate the document; fail if the committed copy is stale |
@@ -127,7 +127,7 @@ Before opening a pull request, run the same commands CI runs:
 
 ```bash
 pnpm typecheck
-pnpm test             # unit, integration and browser end-to-end
+pnpm test             # docs checks, unit, integration and browser end-to-end
 pnpm openapi:check    # use openapi:generate if you changed a route or contract
 pnpm docs:check       # every local Markdown link and #anchor resolves
 pnpm docs:test        # unit tests for the link checker's heading rules

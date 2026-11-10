@@ -76,6 +76,8 @@ All notable changes. Format loosely follows Keep a Changelog; dates are ISO.
 - Unit tests for the documentation checker (`pnpm docs:test`) pin the heading rules GitHub uses —
   punctuation, repeated-heading suffixes, setext headings, fenced blocks and HTML anchors — so
   anchor matching cannot drift silently.
+- `pnpm test` now runs both documentation checks before the workspace suites and Playwright, so a
+  broken link or anchor fails locally rather than only in the `Documentation links` CI job.
 
 ### Known limitations
 - No email provider: invitation/reset tokens are returned in development only.

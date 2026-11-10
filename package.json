@@ -12,7 +12,7 @@
     "dev:web": "pnpm --filter @vetnex/web dev",
     "dev:api": "pnpm --filter @vetnex/api dev",
     "build": "pnpm -r build",
-    "test": "pnpm -r test && pnpm test:e2e",
+    "test": "pnpm docs:test && pnpm docs:check && pnpm -r test && pnpm test:e2e",
     "test:e2e": "tsx tests/e2e/prepare.ts && playwright test",
     "typecheck": "pnpm -r typecheck",
     "openapi:generate": "tsx scripts/generate-openapi.ts",

@@ -62,7 +62,7 @@ pnpm db:migrate              # apply migrations
 pnpm db:seed                 # synthetic data
 pnpm dev                     # web :3000 + api :4000
 pnpm typecheck               # all workspaces
-pnpm test                    # unit + integration + browser end-to-end
+pnpm test                    # docs checks + unit + integration + end-to-end
 pnpm test:e2e                # Playwright only (rebuilds the dedicated E2E database first)
 pnpm --filter @vetnex/api test        # API integration tests (needs database)
 pnpm openapi:generate        # rewrite docs/openapi.json after changing a route or contract
