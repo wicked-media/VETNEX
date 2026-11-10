@@ -73,6 +73,9 @@ All notable changes. Format loosely follows Keep a Changelog; dates are ISO.
 - README, ARCHITECTURE, PRODUCT_REQUIREMENTS, DATABASE_SCHEMA, API_DOCUMENTATION, SECURITY,
   COMPLIANCE_ASSUMPTIONS, DEVELOPMENT, DEPLOYMENT, TESTING, ROADMAP, AGENTS and six ADRs.
 - Contents lists at the top of the longer documents, with every entry checked by `pnpm docs:check`.
+- Unit tests for the documentation checker (`pnpm docs:test`) pin the heading rules GitHub uses —
+  punctuation, repeated-heading suffixes, setext headings, fenced blocks and HTML anchors — so
+  anchor matching cannot drift silently.
 
 ### Known limitations
 - No email provider: invitation/reset tokens are returned in development only.
