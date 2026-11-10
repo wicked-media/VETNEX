@@ -36,7 +36,7 @@ pnpm --filter @vetnex/web dev
 pnpm typecheck               # every workspace
 pnpm openapi:generate        # rewrite docs/openapi.json from the API
 pnpm openapi:check           # fail if the committed OpenAPI document is stale
-pnpm test                    # unit + integration + browser end-to-end
+pnpm test                    # docs checks + unit + integration + end-to-end
 pnpm test:e2e                # browser suite only (needs `pnpm exec playwright install chromium`)
 pnpm --filter @vetnex/api test
 

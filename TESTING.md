@@ -33,6 +33,10 @@ pnpm test                                # everything
 pnpm --filter @vetnex/api test           # integration only
 ```
 
+`pnpm test` starts with the documentation checks. They need no database, no browser and no
+compiled output, so a broken link or anchor stops the run in a second instead of after the slower
+suites.
+
 `apps/api`'s `test` script runs `scripts/prepare-test-db.mjs` first, which applies migrations to the
 test database with `prisma migrate deploy`.
 
@@ -61,7 +65,7 @@ PostgreSQL database. Nothing is mocked, stubbed or intercepted.
 pnpm exec playwright install --with-deps chromium   # once per machine (needs sudo for system libs)
 pnpm db:start
 pnpm test:e2e                                       # rebuild the E2E database, then run the suite
-pnpm test                                           # unit + integration + end-to-end
+pnpm test                                           # docs checks, unit + integration + end-to-end
 ```
 
 `pnpm test:e2e` runs `tests/e2e/prepare.ts` first. It drops and rebuilds the **dedicated**
@@ -119,7 +123,9 @@ target document does not contain. Anchors are matched the way GitHub builds them
 explicit `<a id="...">` targets. External URLs are not fetched, so anchors pointing at other sites
 are not verified. The same job first runs `pnpm docs:test`, a set of `node:test` cases that pin the
 slug rules — punctuation, repeated-heading suffixes, setext headings, fenced blocks and HTML
-anchors — so a change to the checker cannot quietly invalidate existing links.
+anchors — so a change to the checker cannot quietly invalidate existing links. A plain `pnpm test`
+runs both documentation checks locally, before the workspace suites and Playwright, so the same
+failures surface before a push rather than in CI.
 
 ## Not yet automated
 
