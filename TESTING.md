@@ -106,8 +106,9 @@ A third job, `Documentation links`, runs `node scripts/check-doc-links.mjs` with
 dependencies. It fails when a tracked Markdown file links to a repository path that does not exist —
 the usual cause of a link that works in an editor but 404s on the host — or to a `#heading` that the
 target document does not contain. Anchors are matched the way GitHub builds them, including the
-`-1`, `-2` suffixes on repeated headings and explicit `<a id="...">` targets. External URLs are not
-fetched, so anchors pointing at other sites are not verified.
+`-1`, `-2` suffixes on repeated headings, setext headings underlined with `===` or `---`, and
+explicit `<a id="...">` targets. External URLs are not fetched, so anchors pointing at other sites
+are not verified.
 
 ## Not yet automated
 

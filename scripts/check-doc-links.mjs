@@ -12,9 +12,10 @@
  *
  * Heading anchors are matched the way GitHub builds them: lower-cased, punctuation
  * dropped, spaces replaced with hyphens, and a suffix (-1, -2, ...) for repeated
- * headings. Explicit HTML targets (<a id="...">, <a name="...">) count as headings too,
- * while headings inside fenced code blocks do not. Anchors on external URLs are not
- * checked, because the target document is never fetched.
+ * headings. Both ATX (`## Heading`) and setext (`Heading` underlined with === or ---)
+ * headings count, as do explicit HTML targets (<a id="...">, <a name="...">), while
+ * headings inside fenced code blocks do not. Anchors on external URLs are not checked,
+ * because the target document is never fetched.
  *
  * Plain Node with no dependencies, like the other scripts in this directory, so the
  * CI job needs no install step.
@@ -36,6 +37,7 @@ const INLINE_LINK = /!?\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 const REFERENCE_DEFINITION = /^\s{0,3}\[[^\]]+\]:\s*(\S+)/;
 const EXTERNAL = /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/)/i;
 const ATX_HEADING = /^ {0,3}#{1,6}[ \t]+(.*?)[ \t]*#*[ \t]*$/;
+const SETEXT_UNDERLINE = /^ {0,3}(?:=+|-+)[ \t]*$/;
 const HTML_ANCHOR = /\b(?:id|name)\s*=\s*["']([^"']+)["']/gi;
 const FENCE = /^\s{0,3}(`{3,}|~{3,})/;
 
@@ -82,27 +84,46 @@ function anchorsIn(file) {
 
   const anchors = new Set();
   const seen = new Map();
+  const lines = readFileSync(path.join(root, file), "utf8").split(/\r?\n/);
   let fence = null;
 
-  for (const line of readFileSync(path.join(root, file), "utf8").split(/\r?\n/)) {
+  function addHeading(text) {
+    const slug = slugify(text);
+    if (!slug) return;
+    // GitHub disambiguates repeated headings with -1, -2, and so on.
+    const count = seen.get(slug) ?? 0;
+    anchors.add(count === 0 ? slug : `${slug}-${count}`);
+    seen.set(slug, count + 1);
+  }
+
+  lines.forEach((line, index) => {
     const fenceMatch = FENCE.exec(line);
     if (fenceMatch?.[1]) {
       const marker = fenceMatch[1][0] ?? "`";
       if (fence === null) fence = marker;
       else if (fence === marker) fence = null;
-      continue;
+      return;
     }
-    if (fence !== null) continue;
+    if (fence !== null) return;
 
     const heading = ATX_HEADING.exec(line);
     if (heading?.[1]) {
-      const slug = slugify(heading[1]);
-      if (!slug) continue;
-      // GitHub disambiguates repeated headings with -1, -2, and so on.
-      const count = seen.get(slug) ?? 0;
-      anchors.add(count === 0 ? slug : `${slug}-${count}`);
-      seen.set(slug, count + 1);
-      continue;
+      addHeading(heading[1]);
+      return;
+    }
+
+    // Setext headings: this line underlines the text above it. A blank line above
+    // breaks the pair, and an ATX heading above makes this a horizontal rule instead.
+    if (SETEXT_UNDERLINE.test(line)) {
+      const previous = lines[index - 1] ?? "";
+      if (
+        previous.trim() !== "" &&
+        !ATX_HEADING.test(previous) &&
+        !SETEXT_UNDERLINE.test(previous)
+      ) {
+        addHeading(previous);
+      }
+      return;
     }
 
     for (const match of line.matchAll(HTML_ANCHOR)) {
@@ -110,7 +131,7 @@ function anchorsIn(file) {
       anchors.add(match[1]);
       anchors.add(match[1].toLowerCase());
     }
-  }
+  });
 
   anchorCache.set(file, anchors);
   return anchors;
