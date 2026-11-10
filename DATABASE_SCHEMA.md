@@ -3,6 +3,13 @@
 PostgreSQL 18, Prisma ORM. Schema: `packages/database/prisma/schema.prisma`. Migrations:
 `packages/database/prisma/migrations`.
 
+## Contents
+
+- [Conventions](#conventions)
+- [Phase 1 entities](#phase-1-entities)
+- [Verification](#verification)
+- [Planned schema (later phases)](#planned-schema-later-phases)
+
 ## Conventions
 
 - UUID primary keys (`@db.Uuid`, `uuid()`), no sequential ids in URLs.

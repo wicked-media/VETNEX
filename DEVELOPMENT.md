@@ -1,5 +1,17 @@
 # Development
 
+## Contents
+
+- [Prerequisites](#prerequisites)
+- [First run](#first-run)
+- [Everyday commands](#everyday-commands)
+- [Environment](#environment)
+- [Database workflow](#database-workflow)
+- [Adding an endpoint](#adding-an-endpoint)
+- [Adding a screen](#adding-a-screen)
+- [Code style](#code-style)
+- [Common issues](#common-issues)
+
 ## Prerequisites
 
 Node.js ≥ 20.11 (developed on Node 26) and pnpm 10. The local database needs no Docker and no root:

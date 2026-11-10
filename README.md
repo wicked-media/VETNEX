@@ -12,6 +12,16 @@ repository is production-ready, and no compliance certification is claimed.
 
 ---
 
+## Contents
+
+- [What works today](#what-works-today)
+- [Quick start](#quick-start)
+- [Scripts](#scripts)
+- [Repository layout](#repository-layout)
+- [Contributing](#contributing)
+- [Documentation](#documentation)
+- [Honest limitations](#honest-limitations)
+
 ## What works today
 
 | Area | Implemented |

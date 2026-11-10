@@ -1,5 +1,19 @@
 # Architecture
 
+## Contents
+
+- [Shape of the system](#shape-of-the-system)
+- [Why the browser only talks to the web origin](#why-the-browser-only-talks-to-the-web-origin)
+- [Tenancy model](#tenancy-model)
+- [Authentication and sessions](#authentication-and-sessions)
+- [Authorisation](#authorisation)
+- [Audit trail](#audit-trail)
+- [Configuration and regional defaults](#configuration-and-regional-defaults)
+- [Error envelope](#error-envelope)
+- [Frontend approach](#frontend-approach)
+- [Data model conventions](#data-model-conventions)
+- [Deliberate deferrals](#deliberate-deferrals)
+
 ## Shape of the system
 
 ```

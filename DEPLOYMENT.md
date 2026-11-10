@@ -3,6 +3,15 @@
 **No production environment exists.** This document describes the intended target and the gaps that
 must be closed before anything is deployed. Nothing here has been executed.
 
+## Contents
+
+- [Intended topology (AWS Sydney)](#intended-topology-aws-sydney)
+- [Local Docker (optional, untested here)](#local-docker-optional-untested-here)
+- [Build and run (single host)](#build-and-run-single-host)
+- [Migration policy](#migration-policy)
+- [Environment variables](#environment-variables)
+- [Pre-production checklist](#pre-production-checklist)
+
 ## Intended topology (AWS Sydney)
 
 ```
