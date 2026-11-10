@@ -130,6 +130,7 @@ pnpm typecheck
 pnpm test             # unit, integration and browser end-to-end
 pnpm openapi:check    # use openapi:generate if you changed a route or contract
 pnpm docs:check       # every local Markdown link and #anchor resolves
+pnpm docs:test        # unit tests for the link checker's heading rules
 ```
 
 New behaviour needs a test that fails without it — [TESTING.md](TESTING.md) covers the conventions,

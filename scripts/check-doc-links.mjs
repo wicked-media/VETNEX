@@ -17,21 +17,16 @@
  * headings inside fenced code blocks do not. Anchors on external URLs are not checked,
  * because the target document is never fetched.
  *
+ * `slugify` and `headingAnchors` are exported for scripts/check-doc-links.test.mjs; the
+ * command-line behaviour is unchanged and runs only when this file is executed directly.
+ *
  * Plain Node with no dependencies, like the other scripts in this directory, so the
  * CI job needs no install step.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-
-const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
-const files = execFileSync("git", ["ls-files", "-z", "--", "*.md"], {
-  cwd: root,
-  encoding: "utf8",
-})
-  .split("\u0000")
-  .filter(Boolean)
-  .sort();
+import { fileURLToPath } from "node:url";
 
 const INLINE_LINK = /!?\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 const REFERENCE_DEFINITION = /^\s{0,3}\[[^\]]+\]:\s*(\S+)/;
@@ -41,29 +36,8 @@ const SETEXT_UNDERLINE = /^ {0,3}(?:=+|-+)[ \t]*$/;
 const HTML_ANCHOR = /\b(?:id|name)\s*=\s*["']([^"']+)["']/gi;
 const FENCE = /^\s{0,3}(`{3,}|~{3,})/;
 
-function targetsIn(line) {
-  // Inline code is documentation about syntax, not a link.
-  const withoutCode = line.replace(/`[^`]*`/g, "");
-  const targets = [];
-  for (const match of withoutCode.matchAll(INLINE_LINK)) {
-    if (match[1]) targets.push(match[1]);
-  }
-  const definition = REFERENCE_DEFINITION.exec(withoutCode);
-  if (definition?.[1]) targets.push(definition[1]);
-  return targets;
-}
-
-function decode(value) {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    // A malformed escape cannot name a real file or heading; compare it as written.
-    return value;
-  }
-}
-
 /** The anchor GitHub generates for a heading, before duplicate suffixes. */
-function slugify(heading) {
+export function slugify(heading) {
   return heading
     .replace(/<[^>]*>/g, "") // inline HTML
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "") // images contribute nothing
@@ -75,16 +49,11 @@ function slugify(heading) {
     .replace(/\s+/g, "-");
 }
 
-const anchorCache = new Map();
-
-/** Every anchor a reader can jump to in this document. */
-function anchorsIn(file) {
-  const cached = anchorCache.get(file);
-  if (cached) return cached;
-
+/** Every anchor a reader can jump to in this Markdown, duplicate suffixes included. */
+export function headingAnchors(markdown) {
   const anchors = new Set();
   const seen = new Map();
-  const lines = readFileSync(path.join(root, file), "utf8").split(/\r?\n/);
+  const lines = markdown.split(/\r?\n/);
   let fence = null;
 
   function addHeading(text) {
@@ -133,76 +102,126 @@ function anchorsIn(file) {
     }
   });
 
-  anchorCache.set(file, anchors);
   return anchors;
 }
 
-const failures = [];
-let links = 0;
-let anchorsChecked = 0;
-
-for (const file of files) {
-  const lines = readFileSync(path.join(root, file), "utf8").split(/\r?\n/);
-  let fence = null;
-  lines.forEach((line, index) => {
-    // Fenced code blocks can contain anything, including link-like text.
-    const fenceMatch = FENCE.exec(line);
-    if (fenceMatch?.[1]) {
-      const marker = fenceMatch[1][0] ?? "`";
-      if (fence === null) fence = marker;
-      else if (fence === marker) fence = null;
-      return;
-    }
-    if (fence !== null) return;
-
-    for (const target of targetsIn(line)) {
-      const hash = target.indexOf("#");
-      const rawPath = (hash === -1 ? target : target.slice(0, hash)).split("?")[0] ?? "";
-      const rawAnchor = hash === -1 ? "" : target.slice(hash + 1);
-
-      // A link to another site is not a link to this repository, and fetching it to
-      // look up a heading would make CI slow and flaky.
-      if (EXTERNAL.test(rawPath)) continue;
-
-      const targetFile = rawPath ? path.relative(root, resolveTarget(file, rawPath)) : file;
-      links += rawPath ? 1 : 0;
-
-      if (rawPath && !existsSync(path.join(root, targetFile))) {
-        failures.push({ file, line: index + 1, target, reason: "no such file" });
-        continue;
-      }
-
-      if (!rawAnchor) continue;
-      anchorsChecked += 1;
-      const wanted = decode(rawAnchor).toLowerCase();
-      const available = anchorsIn(targetFile);
-      if (!available.has(wanted) && !available.has(decode(rawAnchor))) {
-        failures.push({
-          file,
-          line: index + 1,
-          target,
-          reason: targetFile === file ? "no such heading here" : `no such heading in ${targetFile}`,
-        });
-      }
-    }
-  });
+function targetsIn(line) {
+  // Inline code is documentation about syntax, not a link.
+  const withoutCode = line.replace(/`[^`]*`/g, "");
+  const targets = [];
+  for (const match of withoutCode.matchAll(INLINE_LINK)) {
+    if (match[1]) targets.push(match[1]);
+  }
+  const definition = REFERENCE_DEFINITION.exec(withoutCode);
+  if (definition?.[1]) targets.push(definition[1]);
+  return targets;
 }
 
-function resolveTarget(fromFile, rawTarget) {
+function decode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    // A malformed escape cannot name a real file or heading; compare it as written.
+    return value;
+  }
+}
+
+function resolveTarget(root, fromFile, rawTarget) {
   return path.resolve(path.dirname(path.join(root, fromFile)), decode(rawTarget));
 }
 
-if (failures.length > 0) {
-  const word = failures.length === 1 ? "link or anchor" : "links or anchors";
-  console.error(`✗ ${failures.length} broken documentation ${word} in ${files.length} files:\n`);
-  for (const failure of failures) {
-    console.error(`  ${failure.file}:${failure.line}  ->  ${failure.target}  (${failure.reason})`);
+function main() {
+  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    encoding: "utf8",
+  }).trim();
+  const files = execFileSync("git", ["ls-files", "-z", "--", "*.md"], {
+    cwd: root,
+    encoding: "utf8",
+  })
+    .split("\u0000")
+    .filter(Boolean)
+    .sort();
+
+  const anchorCache = new Map();
+  function anchorsIn(file) {
+    let anchors = anchorCache.get(file);
+    if (!anchors) {
+      anchors = headingAnchors(readFileSync(path.join(root, file), "utf8"));
+      anchorCache.set(file, anchors);
+    }
+    return anchors;
   }
-  console.error("\nFix the path or heading, or use an absolute URL if the target lives elsewhere.");
-  process.exit(1);
+
+  const failures = [];
+  let links = 0;
+  let anchorsChecked = 0;
+
+  for (const file of files) {
+    const lines = readFileSync(path.join(root, file), "utf8").split(/\r?\n/);
+    let fence = null;
+    lines.forEach((line, index) => {
+      // Fenced code blocks can contain anything, including link-like text.
+      const fenceMatch = FENCE.exec(line);
+      if (fenceMatch?.[1]) {
+        const marker = fenceMatch[1][0] ?? "`";
+        if (fence === null) fence = marker;
+        else if (fence === marker) fence = null;
+        return;
+      }
+      if (fence !== null) return;
+
+      for (const target of targetsIn(line)) {
+        const hash = target.indexOf("#");
+        const rawPath = (hash === -1 ? target : target.slice(0, hash)).split("?")[0] ?? "";
+        const rawAnchor = hash === -1 ? "" : target.slice(hash + 1);
+
+        // A link to another site is not a link to this repository, and fetching it to
+        // look up a heading would make CI slow and flaky.
+        if (EXTERNAL.test(rawPath)) continue;
+
+        const targetFile = rawPath ? path.relative(root, resolveTarget(root, file, rawPath)) : file;
+        links += rawPath ? 1 : 0;
+
+        if (rawPath && !existsSync(path.join(root, targetFile))) {
+          failures.push({ file, line: index + 1, target, reason: "no such file" });
+          continue;
+        }
+
+        if (!rawAnchor) continue;
+        anchorsChecked += 1;
+        const wanted = decode(rawAnchor).toLowerCase();
+        const available = anchorsIn(targetFile);
+        if (!available.has(wanted) && !available.has(decode(rawAnchor))) {
+          failures.push({
+            file,
+            line: index + 1,
+            target,
+            reason:
+              targetFile === file ? "no such heading here" : `no such heading in ${targetFile}`,
+          });
+        }
+      }
+    });
+  }
+
+  if (failures.length > 0) {
+    const word = failures.length === 1 ? "link or anchor" : "links or anchors";
+    console.error(`✗ ${failures.length} broken documentation ${word} in ${files.length} files:\n`);
+    for (const failure of failures) {
+      console.error(
+        `  ${failure.file}:${failure.line}  ->  ${failure.target}  (${failure.reason})`,
+      );
+    }
+    console.error("\nFix the path or heading, or use an absolute URL if the target lives elsewhere.");
+    process.exit(1);
+  }
+
+  const anchorNote = anchorsChecked > 0 ? ` and ${anchorsChecked} heading anchor(s)` : "";
+  console.log(
+    `✓ ${links} local link(s)${anchorNote} across ${files.length} Markdown files all resolve.`,
+  );
 }
 
-const anchorNote = anchorsChecked > 0 ? ` and ${anchorsChecked} heading anchor(s)` : "";
-console.log(
-  `✓ ${links} local link(s)${anchorNote} across ${files.length} Markdown files all resolve.`,
-);
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}
