@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@nestjs/common": "11.2.8",
-    "@nestjs/core": "11.2.8",
+    "@nestjs/core": "12.5.0",
     "@nestjs/platform-express": "11.2.8",
     "@vetnex/authentication": "workspace:*",
     "@vetnex/database": "workspace:*",
