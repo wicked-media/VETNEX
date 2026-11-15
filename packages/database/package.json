@@ -23,7 +23,7 @@
     "@vetnex/permissions": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@types/node": "^26.6.6",
     "dotenv-cli": "^8.0.0",
     "prisma": "6.19.3",
     "tsx": "^4.19.2",
