@@ -16,7 +16,7 @@
     "@vetnex/database": "workspace:*",
     "@vetnex/permissions": "workspace:*",
     "@vetnex/shared": "workspace:*",
-    "dotenv": "^16.4.7",
+    "dotenv": "^18.0.10",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "zod": "3.25.76",
